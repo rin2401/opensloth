@@ -33,7 +33,7 @@ opensloth_config = OpenSlothConfig(
         source_type="hf",
         dataset_name="mlabonne/FineTome-100k",
         split="train",
-        cache=False,
+        cache=True,
     ),
     # Use PathDatasetConfig if you have a local dataset (only support sharegpt format for now)
     # data=PathDatasetConfig(
