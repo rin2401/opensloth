@@ -1,6 +1,6 @@
 [project]
 name = "opensloth"
-version = "0.1.5"
+version = "0.1.6"
 description = "A high-performance framework for fine-tuning large language models with multi-GPU support"
 authors = [{ name = "anhvth", email = "anhvth.226@gmail.com" }]
 readme = "README.md"
@@ -45,11 +45,7 @@ Documentation = "https://github.com/anhvth/opensloth"
 "Bug Tracker" = "https://github.com/anhvth/opensloth/issues"
 
 [project.scripts]
-opensloth-train = "opensloth.scripts.hp_trainer:train"
-opensloth-init = "opensloth.scripts.get_example_config:main"
-opensloth-prepare-unsloth-model = "opensloth.scripts.prepare_model:main"
-opensloth-export = "opensloth.scripts.export:main"
-opensloth-build-dataset = "opensloth.scripts.build_dataset:main"
+opensloth-sft-train = "opensloth.scripts.opensloth_sft_trainer:train"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
@@ -57,8 +53,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "opensloth"
-version = "0.1.5"
 packages = [{ include = "opensloth", from = "src" }]
 
 [tool.poetry.scripts]
-opensloth-train = "opensloth.scripts.opensloth_sft_trainer"
+opensloth-train = "opensloth.scripts.opensloth_sft_trainer:train"

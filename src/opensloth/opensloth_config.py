@@ -75,6 +75,7 @@ class DatasetConfigBase(BaseModel):
         default=None,
         description="Maximum sequence length for tokenization",
     )
+    cache: bool = True
 
     def model_post_init(self, __context: Any) -> None:
         """Validate chat template after model initialization."""

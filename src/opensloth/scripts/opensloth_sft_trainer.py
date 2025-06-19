@@ -211,6 +211,14 @@ def run_mp_training(
     training_config: TrainingArguments,
 ):
     """Handle multi-GPU training using multi-processing."""
+    if len(gpus) ==  1:
+        print("Only one GPU detected, running single GPU training")
+        train_on_single_gpu(
+            gpu=gpus[0],
+            opensloth_config=opensloth_config,
+            hf_train_args=training_config,
+        )
+        return
     import multiprocessing as mp
 
     # Set spawn method for CUDA compatibility

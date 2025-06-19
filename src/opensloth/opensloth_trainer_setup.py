@@ -16,8 +16,9 @@ from .opensloth_config import OpenSlothConfig, TrainingArguments
 # from loguru import logger
 
 
+# TODO: remove this part
 def _change_compiler_location() -> None:
-    import unsloth  # type: ignore
+    import unsloth  # type: ignore  # noqa: F401
     from unsloth_zoo import compiler
 
     # ====== Patching the compiler location to avoid race conditions as it is shared between GPUs

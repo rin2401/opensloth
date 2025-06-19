@@ -90,3 +90,7 @@ TrainingConfig(
    # In your training script, change:
    gpus = [0]  # Use only first GPU for debugging
    ```
+
+## 📖 Documentation
+
+- See [CHANGELOG.md](CHANGELOG.md) for recent updates and breaking changes.

@@ -1,6 +1,6 @@
 import fcntl
 import time
-from typing import Optional, Union, List, Tuple, Callable, Any
+from typing import Any, Callable, List, Optional, Tuple, Union
 
 import datasets
 from speedy_utils import identify, load_by_ext
@@ -191,7 +191,7 @@ def _get_cached_dataset(
             return load_from_disk(str(output_path))
         except Exception as e:
             logger.warning(
-                f"Failed to load existing dataset {cache_id}: {e}. " f"Will regenerate."
+                f"Failed to load existing dataset {cache_id}: {e}. Will regenerate."
             )
             # Remove corrupted cache
             import shutil
@@ -211,8 +211,7 @@ def _get_cached_dataset(
                 return load_from_disk(str(output_path))
             except Exception as e:
                 logger.warning(
-                    f"Failed to load existing dataset {cache_id}: {e}. "
-                    f"Will regenerate."
+                    f"Failed to load existing dataset {cache_id}: {e}. Will regenerate."
                 )
                 import shutil
 
@@ -285,7 +284,7 @@ def get_text_dataset(config: DatasetConfig) -> datasets.Dataset:
         std_chat_dataset = _get_std_chat_dataset_from_path(config.path)
     else:
         raise ValueError(
-            f"Unknown source_type: {config.source_type}. " f'Must be "hf" or "path"'
+            f'Unknown source_type: {config.source_type}. Must be "hf" or "path"'
         )
 
     # Validate required attributes for text processing
@@ -382,7 +381,12 @@ def get_tokenized_dataset(
             desc="Tokenizing dataset",
         )
 
-    return _get_cached_dataset(cache_id, _prepare)
+    # Check for cache attribute (default True)
+    use_cache = config.cache
+    if use_cache:
+        return _get_cached_dataset(cache_id, _prepare)
+    else:
+        return _prepare()
 
 
 __all__ = ["get_tokenized_dataset"]

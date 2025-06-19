@@ -82,7 +82,7 @@ def train_qwen3_model():
     # args.skip_prepare_dataset = True
     trainer = SFTTrainer(
         model=model,
-        tokenizer=tokenizer,
+        tokenizer=tokenizer, # type: ignore
         train_dataset=text_dataset,
         eval_dataset=None,
         args=args,

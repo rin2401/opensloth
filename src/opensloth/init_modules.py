@@ -5,22 +5,16 @@ Handles weight synchronization, model setup, and distributed training coordinati
 
 import os
 
-from speedy_utils import identify
-
-
 from opensloth.dataset_utils import get_tokenized_dataset
-
-
-from .opensloth_config import (
-    OpenSlothConfig,
-    TrainingArguments,
-)
+from opensloth.patching.gemma import patch_gemma3_unsloth_for_sequence_packing
 
 from .logging_config import get_opensloth_logger
+from .opensloth_config import OpenSlothConfig, TrainingArguments
 
 
 def init_model_and_tokenizer(opensloth_config: OpenSlothConfig):
     """Initialize and optionally set up LoRA for the model."""
+
     from unsloth import FastModel
 
     logger = get_opensloth_logger()
@@ -37,6 +31,28 @@ def init_model_and_tokenizer(opensloth_config: OpenSlothConfig):
     model, tokenizer = FastModel.from_pretrained(
         **opensloth_config.fast_model_args.model_dump()
     )
+    if (
+        "gemma-3" in opensloth_config.fast_model_args.model_name
+        and opensloth_config.sequence_packing
+    ):
+        logger.info(
+            "Detected Gemma3 model, applying Unsloth patch for sequence packing."
+        )
+        patch_gemma3_unsloth_for_sequence_packing()
+
+    if not hasattr(tokenizer, "pad") and opensloth_config.sequence_packing:
+        logger.info(
+            "Tokenizer missing 'pad' method; attempting to patch using "
+            "transformers.AutoTokenizer. This may indicate an Unsloth issue. "
+            "See: https://github.com/unslothai/unsloth/issues/2056#event-17007147800"
+        )
+        from transformers import AutoTokenizer
+
+        hf_tokenizer = AutoTokenizer.from_pretrained(
+            opensloth_config.fast_model_args.model_name,
+        )
+        tokenizer.pad = hf_tokenizer.pad
+
     logger.finish_timing("model_loading")
 
     logger.start_timing("nccl_setup")
@@ -57,7 +73,8 @@ def init_model_and_tokenizer(opensloth_config: OpenSlothConfig):
     ):
         logger.start_timing("lora_setup")
         model = FastModel.get_peft_model(
-            model, **opensloth_config.lora_args.model_dump()
+            model,
+            **opensloth_config.lora_args.model_dump(),  # type: ignore
         )
         logger.finish_timing("lora_setup")
 
@@ -101,9 +118,8 @@ def create_trainer(
 
     logger.start_timing("training_loop_patch")
     from opensloth.patching.inner_training_loop import patch_inner_training_loop
-    from opensloth.patching.patch_sampler import patch_sampler
-
     from opensloth.patching.patch_log import patch_log
+    from opensloth.patching.patch_sampler import patch_sampler
 
     patch_log(type(trainer))
     patch_inner_training_loop(opensloth_config)
@@ -113,7 +129,7 @@ def create_trainer(
     patch_get_batch_samples(opensloth_config)
 
     # ====
-    trainer = patch_sampler(trainer)
+    trainer = patch_sampler(trainer)  # type: ignore
     logger.finish_timing("training_loop_patch")
 
     # ===
@@ -133,14 +149,55 @@ def _get_trainer(
 ):
     """
     Returns an SFTTrainer instance with a tokenized dataset.
+    If cache=False, use untokenized dataset and custom SFTTrainer logic.
     """
-    from trl import SFTTrainer
     from transformers import DataCollatorForSeq2Seq
+    from trl import SFTConfig, SFTTrainer
+
     from .logging_config import get_opensloth_logger
 
     logger = get_opensloth_logger()
 
-    # Get the tokenized dataset using the dataset_utils function
+    # If cache is False, use untokenized dataset and custom trainer logic
+    if hasattr(opensloth_config.data, "cache") and opensloth_config.data.cache is False:
+        from unsloth.chat_templates import train_on_responses_only
+
+        from opensloth.dataset_utils import get_text_dataset
+
+        logger.info(
+            "cache=False: Using untokenized dataset and custom SFTTrainer setup."
+        )
+        text_dataset = get_text_dataset(opensloth_config.data)
+        trainer = SFTTrainer(
+            model=model,
+            tokenizer=tokenizer,  # type: ignore
+            train_dataset=text_dataset,
+            eval_dataset=None,
+            args=SFTConfig(
+                dataset_text_field="text",
+                per_device_train_batch_size=2,
+                gradient_accumulation_steps=4,
+                warmup_steps=5,
+                max_steps=30,
+                learning_rate=2e-4,
+                logging_steps=1,
+                optim="adamw_8bit",
+                weight_decay=0.01,
+                lr_scheduler_type="linear",
+                seed=3407,
+                report_to="none",
+                dataset_num_proc=2,
+            ),
+        )
+        trainer = train_on_responses_only(
+            trainer,
+            instruction_part="<start_of_turn>user\n",
+            response_part="<start_of_turn>model\n",
+        )
+        logger.info("Custom SFTTrainer with train_on_responses_only applied.")
+        return trainer
+
+    # Default: use tokenized dataset
     tokenized_train_dataset = get_tokenized_dataset(
         config=opensloth_config.data,
     )
@@ -151,12 +208,15 @@ def _get_trainer(
     trainer = SFTTrainer(
         model=model,
         train_dataset=tokenized_train_dataset,
-        args=hf_train_args,
+        args=hf_train_args,  # type: ignore
+        tokenizer=tokenizer,  # type: ignore
     )
     logger.finish_timing("final_trainer_creation")
 
-    if hasattr(trainer, "data_collator") and not isinstance(
-        trainer.data_collator, DataCollatorForSeq2Seq
+    if (
+        hasattr(trainer, "data_collator")
+        and not isinstance(trainer.data_collator, DataCollatorForSeq2Seq)
+        and opensloth_config.sequence_packing
     ):
         logger.info(
             f"Replacing {type(trainer.data_collator).__name__} with "

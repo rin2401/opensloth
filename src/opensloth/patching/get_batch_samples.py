@@ -7,7 +7,6 @@ from opensloth.patching.patch_log import patch_log
 
 from ..logging_config import get_opensloth_logger
 
-
 # def _to_batch(items, pad_values):
 #     """Convert a list of items to a batch with padding."""
 #     max_len = max(item["input_ids"].shape[1] for item in items)
@@ -273,5 +272,5 @@ def patch_get_batch_samples(opensloth_config: OpenSlothConfig):
         #         final_batches.append(_to_batch(pending_batch, pad_tokens))
         #     # Return final batches
         #     batch_samples = final_batches
-
+        # import ipdb; ipdb.set_trace()
         return batch_samples, num_items_in_batch
