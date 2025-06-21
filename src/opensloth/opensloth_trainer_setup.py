@@ -44,10 +44,10 @@ def setup_model_and_training(
     # Get enhanced logger for timing
     from .logging_config import get_opensloth_logger
 
-    hp_logger = get_opensloth_logger()
+    logger = get_opensloth_logger()
 
     # Start total setup timing
-    hp_logger.start_timing("total_setup")
+    logger.start_timing("total_setup")
 
     _change_compiler_location()
 
@@ -55,16 +55,16 @@ def setup_model_and_training(
     configure_batch_size(hf_train_args, gpu_ith, num_gpus)
 
     # Time model initialization
-    hp_logger.start_timing("model_init")
+    logger.start_timing("model_init")
     model, tokenizer = init_model_and_tokenizer(opensloth_config)
-    hp_logger.finish_timing("model_init")
+    logger.finish_timing("model_init")
 
     # Time trainer creation
-    hp_logger.start_timing("trainer_creation")
+    logger.start_timing("trainer_creation")
     trainer = create_trainer(model, tokenizer, opensloth_config, hf_train_args)
-    hp_logger.finish_timing("trainer_creation")
+    logger.finish_timing("trainer_creation")
 
     # Finish total setup timing
-    hp_logger.finish_timing("total_setup")
+    logger.finish_timing("total_setup")
 
     return trainer, model, tokenizer

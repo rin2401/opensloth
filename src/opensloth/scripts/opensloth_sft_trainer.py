@@ -1,14 +1,13 @@
-import os
+import importlib.util
 import os
 import sys
 import time
 import warnings
-import importlib.util
-from fastcore.all import threaded, call_parse
 
-from opensloth.opensloth_config import OpenSlothConfig, TrainingArguments
+from fastcore.all import call_parse
+
 from opensloth.logging_config import OpenslothLogger
-
+from opensloth.opensloth_config import OpenSlothConfig, TrainingArguments
 
 warnings.filterwarnings("ignore")
 
@@ -32,6 +31,7 @@ def get_current_python_path():
 def train_on_single_gpu(
     gpu: int, opensloth_config: OpenSlothConfig, hf_train_args: TrainingArguments
 ):
+    os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu)
     from opensloth.opensloth_trainer_setup import setup_model_and_training
 
     os.environ["OPENSLOTH_LOCAL_RANK"] = str(opensloth_config.devices.index(gpu))
@@ -44,7 +44,6 @@ def train_on_single_gpu(
     logger.start_total_training_timer()
 
     # setup_nccl_for_opensloth(gpu, opensloth_config.training.gpus)
-    os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu)
 
     logger.start_timing("model_and_training_setup")
     trainer, model, tokenizer = setup_model_and_training(
@@ -57,7 +56,9 @@ def train_on_single_gpu(
 
     # Only use NCCL gradient sync for multi-GPU training
     if len(opensloth_config.devices) > 1:
-        from opensloth.nccl_grad_sync import NCCLGradSyncCallback
+        from opensloth.nccl_grad_sync import get_callback_and_setup_method
+
+        NCCLGradSyncCallback, setup_nccl_for_opensloth = get_callback_and_setup_method()
 
         grad_sync_cb = NCCLGradSyncCallback(
             model=trainer.model,
@@ -67,9 +68,10 @@ def train_on_single_gpu(
         logger.info(f"Using gradient sync callback for GPU {gpu}")
         trainer.add_callback(grad_sync_cb)
     else:
-        logger.info(f"Single GPU training detected, skipping NCCL gradient sync")
+        logger.info("Single GPU training detected, skipping NCCL gradient sync")
 
     logger.start_timing("actual_training")
+    logger.debug(f"Environment: {os.environ}")
     trainer.train()
     logger.finish_timing("actual_training")
 
@@ -77,6 +79,11 @@ def train_on_single_gpu(
     if gpu == opensloth_config.devices[0]:
         logger.start_timing("model_saving")
         logger.info(f"Save model to {hf_train_args.output_dir}")
+        # Ensure output directory exists before saving model/tokenizer
+        output_dir = hf_train_args.output_dir
+        if output_dir is not None:
+            os.makedirs(output_dir, exist_ok=True)
+
         model.save_pretrained(hf_train_args.output_dir)
         tokenizer.save_pretrained(hf_train_args.output_dir)
         logger.finish_timing("model_saving")
@@ -211,7 +218,7 @@ def run_mp_training(
     training_config: TrainingArguments,
 ):
     """Handle multi-GPU training using multi-processing."""
-    if len(gpus) ==  1:
+    if len(gpus) == 1:
         print("Only one GPU detected, running single GPU training")
         train_on_single_gpu(
             gpu=gpus[0],
@@ -268,14 +275,6 @@ def initialize_training_config(config_file):
     opensloth_config, training_config = load_config_from_path(config_file)
     print(
         f"Overriding max_seq_len to {opensloth_config.fast_model_args.max_seq_length} for data processing"
-    )
-    # training_config.max_seq_len = opensloth_config.fast_model_args.max_seq_length
-    opensloth_config.data.max_seq_length = (
-        opensloth_config.fast_model_args.max_seq_length
-    )
-    opensloth_config.data.tokenizer_name = (
-        opensloth_config.data.tokenizer_name
-        or opensloth_config.fast_model_args.model_name
     )
 
     setup_envs(opensloth_config, training_config)

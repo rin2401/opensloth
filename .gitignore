@@ -64,3 +64,4 @@ assets/all_batches.pkl
 mutagen.sh
 mutagen.yml
 _unsloth_sentencepiece_temp
+outputdir/

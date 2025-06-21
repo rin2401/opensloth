@@ -12,7 +12,7 @@ from unsloth import FastLanguageModel
 
 def dump_data() -> Any:
     model, tokenizer = FastLanguageModel.from_pretrained(
-        model_name="unsloth/Qwen3-0.6B",  # Just for storing dataset, use smallest of its varient
+        model_name="unsloth/qwen3-0.6b-bnb-4bit",  # Just for storing dataset, use smallest of its varient
         max_seq_length=2048,  # Context length - can be longer, but uses more memory
         load_in_4bit=True,  # 4bit uses much less memory
         load_in_8bit=False,  # A bit more accurate, uses 2x memory
@@ -76,6 +76,7 @@ def dump_data() -> Any:
         ),
     )
     trainer.train_dataset.save_to_disk("data/cache_qwen3_dataset")
+    print("Dataset saved to data/cache_qwen3_dataset")
 
 
 if __name__ == "__main__":

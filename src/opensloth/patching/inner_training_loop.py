@@ -148,6 +148,7 @@ def patch_inner_training_loop(trainer, sequence_packing):
         # this is for unhandled cases such as
         # FSDP-XLA, SageMaker MP/DP, DataParallel, IPEX
         use_accelerator_prepare = True if model is self.model else False
+        assert use_accelerator_prepare
 
         if use_accelerator_prepare and self.is_fsdp_enabled:
             # In case of auto_find_batch_size=True

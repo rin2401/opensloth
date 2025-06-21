@@ -1,6 +1,5 @@
 from opensloth.opensloth_config import (
     FastModelArgs,
-    HFDatasetConfig,
     LoraArgs,
     OpenSlothConfig,
     TrainingArguments,
@@ -14,20 +13,7 @@ DEVICES = [0, 1]
 
 BZ = 1  # if sequence packing, then should be 1, larger does not contribute to speed
 opensloth_config = OpenSlothConfig(
-    # Use Hugging Face dataset configuration
-    data=HFDatasetConfig(
-        tokenizer_name="Qwen/Qwen3-8B",
-        chat_template="qwen3",  # known template: ['unsloth', 'zephyr', 'chatml', 'mistral', 'llama', 'vicuna', 'vicuna_old', 'vicuna old', 'alpaca', 'gemma', 'gemma_chatml', 'gemma2', 'gemma2_chatml', 'llama-3', 'llama3', 'phi-3', 'phi-35', 'phi-3.5', 'llama-3.1', 'llama-31', 'llama-3.2', 'llama-3.3', 'llama-32', 'llama-33', 'qwen-2.5', 'qwen-25', 'qwen25', 'qwen2.5', 'phi-4', 'gemma-3', 'gemma3', 'qwen-3', 'qwen3']
-        instruction_part="<|im_start|>user\n",
-        response_part="<|im_start|>assistant\n",
-        num_samples=10000,
-        nproc=52,
-        max_seq_length=16000,
-        source_type="hf",
-        dataset_name="mlabonne/FineTome-100k",
-        split="train",
-    ),
-
+    data_cache_path="data/cache_qwen3_dataset/",
     devices=DEVICES,
     fast_model_args=FastModelArgs(
         model_name="unsloth/Qwen3-0.6B-Base-bnb-4bit",
@@ -86,6 +72,3 @@ if __name__ == "__main__":
 
     setup_envs(opensloth_config, training_config)
     run_mp_training(opensloth_config.devices, opensloth_config, training_config)
-    # train_on_single_gpu(
-    #     opensloth_config.devices[0], opensloth_config, training_config
-    # )  # For debugging purposes, run on a single GPU

@@ -8,29 +8,24 @@ from opensloth.patching.patch_sampler import patch_sampler
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 os.environ["OPENSLOTH_LOCAL_RANK"] = "0"
 
+CACHE_DATA_DIR = os.environ.get("OPENSLOTH_CACHE_DATA_DIR", "/tmp/opensloth_cache_data")
+
 
 def train_qwen3_model():
     """Train Qwen3 model with minimal setup."""
-    from opensloth.dataset_utils import get_tokenized_dataset, HFDatasetConfig
-
-    text_dataset = get_tokenized_dataset(
-        HFDatasetConfig(
-            tokenizer_name="Qwen/Qwen3-8B",
-            chat_template="qwen3",
-            instruction_part="<|im_start|>user\n",
-            response_part="<|im_start|>assistant\n",
-            num_samples=1000,
-            nproc=52,
-            max_seq_length=4096,
-            source_type="hf",
-            dataset_name="mlabonne/FineTome-100k",
-            split="train",
-        ),
-        do_tokenize=False,
-    )
-    from unsloth import FastLanguageModel
     import torch
-    from trl import SFTTrainer, SFTConfig
+    from datasets import load_from_disk
+    from trl import SFTConfig, SFTTrainer
+    from unsloth import FastLanguageModel
+
+    # Load cached dataset
+    cache_path = os.environ.get(
+        "OPENSLOTH_CACHE_DATASET_PATH", "/tmp/opensloth_cache_data/qwen3_cache"
+    )
+    train_dataset = load_from_disk(cache_path)
+
+    output_dir = "outputs/exps/qwen3-0.6b-FineTome-unsloth-no-packing"
+    os.makedirs(output_dir, exist_ok=True)
 
     # Load model
     model, tokenizer = FastLanguageModel.from_pretrained(
@@ -63,7 +58,7 @@ def train_qwen3_model():
         loftq_config=None,
     )
     args = SFTConfig(
-        output_dir="outputs/exps/qwen3-0.6b-FineTome-unsloth-no-packing",
+        output_dir=output_dir,
         dataset_text_field="text",
         per_device_train_batch_size=2,
         gradient_accumulation_steps=4,
@@ -77,13 +72,13 @@ def train_qwen3_model():
         seed=3407,
         # max_steps=100,
         report_to="tensorboard",  # or "wandb"
+        skip_prepare_dataset=True,
     )
 
-    # args.skip_prepare_dataset = True
     trainer = SFTTrainer(
         model=model,
-        tokenizer=tokenizer, # type: ignore
-        train_dataset=text_dataset,
+        tokenizer=tokenizer,  # type: ignore
+        train_dataset=train_dataset,
         eval_dataset=None,
         args=args,
     )
@@ -117,7 +112,7 @@ def train_qwen3_model():
     lora_percentage = round(used_memory_for_lora / max_memory * 100, 3)
     print(f"{trainer_stats.metrics['train_runtime']} seconds used for training.")
     print(
-        f"{round(trainer_stats.metrics['train_runtime']/60, 2)} minutes used for training."
+        f"{round(trainer_stats.metrics['train_runtime'] / 60, 2)} minutes used for training."
     )
     print(f"Peak reserved memory = {used_memory} GB.")
     print(f"Peak reserved memory for training = {used_memory_for_lora} GB.")

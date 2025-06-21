@@ -3,8 +3,6 @@ from typing import Dict, List
 from fastcore.all import patch
 from transformers.trainer import *
 
-from opensloth.patching.patch_log import patch_log
-
 from ..logging_config import get_opensloth_logger
 
 # def _to_batch(items, pad_values):
@@ -272,5 +270,4 @@ def patch_get_batch_samples(opensloth_config: OpenSlothConfig):
         #         final_batches.append(_to_batch(pending_batch, pad_tokens))
         #     # Return final batches
         #     batch_samples = final_batches
-        # import ipdb; ipdb.set_trace()
         return batch_samples, num_items_in_batch
