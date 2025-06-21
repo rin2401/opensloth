@@ -32,7 +32,7 @@ python scripts/train.py
 
 | Example | Description | Link/Command |
 |---------|-------------|--------------|
-| **Kaggle Notebook (T4x2)** | Live training example on Kaggle's dual T4 GPU environment | [🔗 Qwen3 OpenSloth 2GPUs](https://www.kaggle.com/code/anhvth226/qwen3-opensloth-2gpus?scriptVersionId=246662257) |
+| **Kaggle Notebook (T4x2)** | Live training example on Kaggle's dual T4 GPU environment | [🔗 Qwen3 OpenSloth 2GPUs](https://www.kaggle.com/code/anhvth226/qwen3-opensloth-2gpus?scriptVersionId=246662898) |
 | **Local Training Script** | Check out the training script for configuration examples | `python scripts/train.py` |
 | **Local Jupyter Notebook** | Interactive training notebook for local development | [`notebooks/train.ipynb`](notebooks/train.ipynb) |
 
