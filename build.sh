@@ -20,4 +20,7 @@ echo "Version bumped from $CURRENT_VERSION to $NEW_VERSION"
 git add -A && git commit -m "Bump version to $NEW_VERSION"
 git push
 
-echo "Build completed successfully!"
+echo "Publishing to PyPI via Poetry..."
+poetry publish --build
+
+echo "Build and publish completed successfully!"
