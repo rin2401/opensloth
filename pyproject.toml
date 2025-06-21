@@ -1,6 +1,6 @@
 [project]
 name = "opensloth"
-version = "0.1.6"
+version = "0.1.7"
 description = "A high-performance framework for fine-tuning large language models with multi-GPU support"
 authors = [{ name = "anhvth", email = "anhvth.226@gmail.com" }]
 readme = "README.md"
