@@ -1,4 +1,5 @@
 import fcntl
+import os
 import time
 from typing import Any, Callable, List, Optional, Tuple, Union
 
@@ -306,6 +307,10 @@ def get_tokenized_dataset(
 ) -> datasets.Dataset:
     """Get tokenized dataset with optional response-only labeling."""
     # Validate config
+    if config.cache_path is not None and os.path.exists(config.cache_path):
+        # Load from cache if available
+        print(f"Loading dataset from cache: {config.cache_path}")
+        return datasets.load_from_disk(config.cache_path)
     response_only = config.response_only
 
     if not hasattr(config, "max_seq_length"):

@@ -1,5 +1,26 @@
 # Changelog
 
+## vNEXT (2025-06-21)
+
+### Added
+- **Dataset caching scripts**
+  - `cache_unsloth_dataset/README.md`, `cache_unsloth_dataset/gemma.py`, `cache_unsloth_dataset/qwen3.py`: Scripts and docs for preparing and caching datasets for Unsloth fine-tuning.
+
+### Changed
+- **Training scripts**
+  - `scripts/train_gemma.py`, `scripts/train_qwen.py`: Improved dataset caching, sequence packing, and multi-GPU support. Updated configs for Gemma-3 and Qwen3 models.
+- **Configuration and patching**
+  - `src/opensloth/dataset_utils.py`, `src/opensloth/init_modules.py`, `src/opensloth/opensloth_config.py`, `src/opensloth/patching/inner_training_loop.py`: Internal improvements for dataset handling, model initialization, and training loop patching.
+- **Documentation**
+  - `README.md`: Updated installation, usage, and dataset preparation instructions.
+
+### Other
+- `.gitignore`: Updated to reflect new cache and notebook files.
+
+---
+
+See the README for usage and upgrade notes.
+
 ## vNEXT (2025-06-19)
 
 ### Added

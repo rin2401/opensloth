@@ -1,6 +1,7 @@
 from fastcore.all import patch
 from transformers.trainer import *
-from ..opensloth_config import OpenSlothConfig
+
+# from ..opensloth_config import OpenSlothConfig
 
 
 def calculate_token_metrics(input_ids, pad_token_id):
@@ -10,17 +11,17 @@ def calculate_token_metrics(input_ids, pad_token_id):
     return total_tokens, effective_tokens
 
 
-def patch_inner_training_loop(opensloth_config: OpenSlothConfig):
+def patch_inner_training_loop(trainer, sequence_packing):
     """
     Ultra-minimal patch that only adds essential opensloth customizations.
     This approach patches specific methods instead of duplicating the entire training loop.
     """
     # Get environment variables
-    sequence_packing = opensloth_config.sequence_packing
+    # sequence_packing = opensloth_config.sequence_packing
 
     @patch
     def _inner_training_loop(
-        self: Trainer,
+        self: type(trainer),  # type: ignore
         batch_size=None,
         args=None,
         resume_from_checkpoint=None,
@@ -502,7 +503,6 @@ def patch_inner_training_loop(opensloth_config: OpenSlothConfig):
                                     grad_norm = grad_norm.item()
                             else:
                                 grad_norm = _grad_norm
-
                         self.optimizer.step()
 
                         self.control = self.callback_handler.on_optimizer_step(

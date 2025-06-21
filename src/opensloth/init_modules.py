@@ -122,7 +122,7 @@ def create_trainer(
     from opensloth.patching.patch_sampler import patch_sampler
 
     patch_log(type(trainer))
-    patch_inner_training_loop(opensloth_config)
+    patch_inner_training_loop(trainer, opensloth_config.sequence_packing)
 
     from .patching.get_batch_samples import patch_get_batch_samples
 
