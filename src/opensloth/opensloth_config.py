@@ -117,7 +117,8 @@ class TrainingArguments(BaseModel):
     save_total_limit: int = 2
     optim: str = "adamw_8bit"
     weight_decay: float = 0.01
-    save_only_model: bool = True
+    save_only_model: bool = False
+    resume_from_checkpoint: Optional[str] = None
 
     seed: int = 42
     report_to: Literal["tensorboard", "wandb", "none"] = "tensorboard"

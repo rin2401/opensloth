@@ -41,6 +41,9 @@ opensloth_config = OpenSlothConfig(
 
 training_config = TrainingArguments(
     output_dir="outputs/exps/qwen3-0.6b-FineTome-2gpu-packing",
+    resume_from_checkpoint="outputs/exps/qwen3-0.6b-FineTome-2gpu-packing",
+    save_only_model=False,
+    max_steps=10,
     per_device_train_batch_size=BZ,
     gradient_accumulation_steps=GLOBAL_BZ // (len(DEVICES) * BZ),
     learning_rate=1e-5,

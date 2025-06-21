@@ -77,16 +77,20 @@ def train_on_single_gpu(
 
     # Save once from rank=0
     if gpu == opensloth_config.devices[0]:
-        logger.start_timing("model_saving")
-        logger.info(f"Save model to {hf_train_args.output_dir}")
-        # Ensure output directory exists before saving model/tokenizer
-        output_dir = hf_train_args.output_dir
-        if output_dir is not None:
-            os.makedirs(output_dir, exist_ok=True)
-
-        model.save_pretrained(hf_train_args.output_dir)
-        tokenizer.save_pretrained(hf_train_args.output_dir)
-        logger.finish_timing("model_saving")
+        if hf_train_args.save_only_model:
+            logger.start_timing("model_saving")
+            logger.info(f"Save model to {hf_train_args.output_dir}")
+            # Ensure output directory exists before saving model/tokenizer
+            output_dir = hf_train_args.output_dir
+            if output_dir is not None:
+                os.makedirs(output_dir, exist_ok=True)
+            model.save_pretrained(hf_train_args.output_dir)
+            tokenizer.save_pretrained(hf_train_args.output_dir)
+            logger.finish_timing("model_saving")
+        else:
+            # user save_state
+            trainer.save_model()
+            trainer.save_state()
 
         # Log training summary
         logger.log_training_summary()

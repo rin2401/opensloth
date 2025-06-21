@@ -194,6 +194,15 @@ def patch_inner_training_loop(trainer, sequence_packing):
             self.deepspeed = self.model_wrapped
 
         # ckpt loading
+        if (
+            resume_from_checkpoint is None
+            # and self.args.get("resume_from_checkpoint")
+            and hasattr(self.args, "resume_from_checkpoint")
+            and os.path.exists(self.args.resume_from_checkpoint)
+        ):
+            resume_from_checkpoint = self.args.resume_from_checkpoint
+            logger.info(f"Resuming from checkpoint: {resume_from_checkpoint}")
+
         if resume_from_checkpoint is not None:
             if self.is_deepspeed_enabled:
                 deepspeed_load_checkpoint(
