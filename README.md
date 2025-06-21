@@ -32,7 +32,7 @@ python scripts/train.py
 
 | Example | Description | Link/Command |
 |---------|-------------|--------------|
-| **Kaggle Notebook (T4x2)** | Live training example on Kaggle's dual T4 GPU environment | [🔗 Qwen3 OpenSloth 2GPUs](https://www.kaggle.com/code/anhvth226/qwen3-opensloth-2gpus?scriptVersionId=244825301) |
+| **Kaggle Notebook (T4x2)** | Live training example on Kaggle's dual T4 GPU environment | [🔗 Qwen3 OpenSloth 2GPUs](https://www.kaggle.com/code/anhvth226/qwen3-opensloth-2gpus?scriptVersionId=246662257) |
 | **Local Training Script** | Check out the training script for configuration examples | `python scripts/train.py` |
 | **Local Jupyter Notebook** | Interactive training notebook for local development | [`notebooks/train.ipynb`](notebooks/train.ipynb) |
 
@@ -109,5 +109,16 @@ Follow these steps to extract and save a dataset from an Unsloth notebook:
    ```python
    trainer.train_dataset.save_to_disk("data/cache_qwen3_dataset")
    ```
+
+7. Place it here
+```python
+....
+opensloth_config = OpenSlothConfig(
+    data_cache_path="data/cache_qwen3_dataset/",
+    devices=DEVICES,
+    ...
+        
+```
+
 
 This will store the processed dataset for later use.
