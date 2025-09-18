@@ -29,14 +29,20 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
-    "pyyaml (>=6.0.2,<7.0.0)",
-    "jupyterlab (>=4.3.5,<5.0.0)",
-    "fastcore (>=1.7.29,<2.0.0)",
-    "speedy-utils (>=0.1.20,<0.2.0)",
-    "tensorboard (>=2.19.0,<3.0.0)",
-    "fire (>=0.7.0,<0.8.0)",
-    "tensorboardx (>=2.6.2.2,<3.0.0.0)",
+    "torch>=2.0.0",
+    "torchvision>=0.15.0", 
+    "torchaudio>=2.0.0",
     "unsloth>=2024.11.10",
+    "transformers>=4.35.0",
+    "trl>=0.7.0",
+    "datasets>=2.14.0",
+    "pyyaml>=6.0.2",
+    "jupyterlab>=4.0.0",
+    "fastcore>=1.7.0",
+    "speedy-utils>=0.1.20",
+    "tensorboard>=2.14.0",
+    "fire>=0.5.0",
+    "pandas>=1.5.0",
 ]
 
 [project.urls]
@@ -46,15 +52,11 @@ Documentation = "https://github.com/anhvth/opensloth"
 "Bug Tracker" = "https://github.com/anhvth/opensloth/issues"
 
 [project.scripts]
-opensloth-sft-train = "opensloth.scripts.opensloth_sft_trainer:train"
+opensloth-train = "opensloth.scripts.opensloth_sft_trainer:train"
 
 [build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-[tool.poetry]
-name = "opensloth"
-packages = [{ include = "opensloth", from = "src" }]
-
-[tool.poetry.scripts]
-opensloth-train = "opensloth.scripts.opensloth_sft_trainer:train"
+[tool.hatch.build.targets.wheel]
+packages = ["src/opensloth"]
