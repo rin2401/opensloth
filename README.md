@@ -56,7 +56,7 @@ ddp_patch()  # Enable DDP compatibility
 # Standard Unsloth setup
 local_rank = int(os.environ.get("LOCAL_RANK", 0))
 model, tokenizer = FastLanguageModel.from_pretrained(
-    model_name="unsloth/Qwen3-1.5B",
+    model_name="unsloth/Qwen3-0.6B",
     device_map={"": local_rank},
     load_in_4bit=True,
 )
