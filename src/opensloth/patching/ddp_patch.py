@@ -67,8 +67,7 @@ def patch_trainer_loss_scaling():
 
 
 def patch_trainer_deterministic_sampler():
-    1/0
-    """Globally replace TRL’s SFTTrainer with a deterministic subclass."""
+    """Globally replace TRL’s SFTTrainer with a deterministic subclass for debugging"""
     from torch.utils.data import SequentialSampler
     from trl import SFTTrainer  # type: ignore
     from typing import Optional
