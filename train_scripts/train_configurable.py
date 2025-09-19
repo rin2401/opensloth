@@ -36,7 +36,6 @@ def init_model(args, local_rank: int) -> Tuple[FastLanguageModel, Any]:
         model_name=args.model_name,
         max_seq_length=args.max_seq_length,
         load_in_4bit=True,
-        attn_implementation="flash_attention_2",
         device_map=device_map,
     )
 
