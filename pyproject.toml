@@ -28,6 +28,7 @@ classifiers = [
 dependencies = [
     "bitsandbytes>=0.47.0",
     "datasets>=3.6.0",
+    "llmcompressor>=0.6.0",
     "loguru>=0.7.3",
     "poetry>=2.2.0",
     "speedy-utils>=1.1.17",
@@ -45,8 +46,6 @@ Repository = "https://github.com/anhvth/opensloth"
 Documentation = "https://github.com/anhvth/opensloth"
 "Bug Tracker" = "https://github.com/anhvth/opensloth/issues"
 
-[project.scripts]
-opensloth-train = "opensloth.scripts.opensloth_sft_trainer:train"
 
 [build-system]
 requires = ["hatchling"]
