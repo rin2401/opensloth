@@ -9,7 +9,7 @@ from unsloth import FastLanguageModel
 from datasets import Dataset, load_dataset
 from trl import SFTConfig, SFTTrainer  # type: ignore
 
-from opensloth.patching.ddp_patch import ddp_patch, patch_trainer_get_batch_samples
+from opensloth.patching.ddp_patch import ddp_patch, patch_optimize_sft_trainer_batch_samples
 WORLD_SIZE = int(os.environ.get("WORLD_SIZE", "1"))
 MODEL_NAME = "unsloth/Qwen3-0.6B"
 MAX_SEQ_LENGTH = 16000
@@ -103,7 +103,7 @@ def build_trainer(
 
 def main() -> None:
     ddp_patch()
-    patch_trainer_get_batch_samples()
+    patch_optimize_sft_trainer_batch_samples()
 
     local_rank = int(os.environ.get("LOCAL_RANK", 0))
     print(f"🚀 Initializing training on GPU {local_rank}")

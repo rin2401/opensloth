@@ -38,7 +38,7 @@ def ddp_patch():
     return device
 
 
-def patch_trainer_get_batch_samples() -> None:
+def patch_optimize_sft_trainer_batch_samples() -> None:
     """Optimal dynamic programming repacking of variable-length samples to improve padding efficiency."""
     from typing import Dict, Iterable, List, Sequence, Tuple
 
@@ -209,10 +209,10 @@ def patch_trainer_get_batch_samples() -> None:
 
         for bi, (lo, hi) in enumerate(bounds):
             # max len inside the group is at 'lo' (descending order)
-            if verbose:
-                group_max = samples[lo]["length"]
-                print(f"  Batch[{bi}] = [{lo}:{hi}] "
-                      f"(size={hi-lo+1}, max={group_max})")
+            # if verbose:
+            #     group_max = samples[lo]["length"]
+            #     print(f"  Batch[{bi}] = [{lo}:{hi}] "
+            #           f"(size={hi-lo+1}, max={group_max})")
             target = packed_batches[bi]
             for idx in range(lo, hi + 1):
                 s = samples[idx]
@@ -303,7 +303,7 @@ def patch_trainer_deterministic_sampler():
 
 __all__ = [
     "ddp_patch",
-    "patch_trainer_get_batch_samples",
+    "patch_optimize_sft_trainer_batch_samples",
     "patch_trainer_loss_scaling",
     "patch_trainer_deterministic_sampler",
 ]
