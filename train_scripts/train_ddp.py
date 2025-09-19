@@ -19,12 +19,14 @@ Key benefits:
 - Works with any Unsloth model
 - Simple and clean codebase
 - Automatic GPU detection and setup
+- Efficient sequence packing with 4D masked attention for better GPU utilization
 
 Requirements:
 - unsloth
-- transformers
+- transformers (latest version supporting 4D masks)
 - trl
 - datasets
+- flash-attn (pip install flash-attn --no-build-isolation)
 """
 
 import os
@@ -41,8 +43,8 @@ ddp_patch()
 # -----------------------------
 # Model Configuration
 # -----------------------------
-max_seq_length = 512  # Sequence length for training
-lora_rank = 8         # LoRA rank for efficient training
+max_seq_length = 8000  # Increased sequence length for better packing efficiency (model supports up to 32768)
+lora_rank = 8          # LoRA rank for efficient training
 
 # Get local rank for DDP - torchrun sets this automatically
 local_rank = int(os.environ.get("LOCAL_RANK", 0))
@@ -55,6 +57,7 @@ model, tokenizer = FastLanguageModel.from_pretrained(
     model_name="unsloth/Qwen3-0.6B",  # Using small model for quick testing
     max_seq_length=max_seq_length,
     load_in_4bit=True,                # Memory efficient 4-bit loading
+    # attn_implementation="flash_attention_2",  # Required for 4D masked packing to prevent cross-contamination
     device_map={"": local_rank},      # Each process gets its own GPU
 )
 
@@ -152,7 +155,7 @@ def get_random_realistic_fake_data(n: int = 100, seed: int = 3407):
 
 
 # Create training and validation datasets
-train_dataset = get_random_realistic_fake_data(n=100, seed=42)
+train_dataset = get_random_realistic_fake_data(n=10000, seed=42)
 val_dataset = get_random_realistic_fake_data(n=20, seed=2024)
 
 # -----------------------------
@@ -174,9 +177,10 @@ print(f"   - Effective batch size: {effective_batch_size}")
 
 trainer = SFTTrainer(
     model=model,
-    tokenizer=tokenizer,
+    tokenizer=tokenizer, # type: ignore
     train_dataset=train_dataset,
     eval_dataset=val_dataset,
+    
     args=SFTConfig(
         per_device_train_batch_size=1,      # Small batch per GPU for memory efficiency
         gradient_accumulation_steps=grad_accum,  # Accumulate gradients for larger effective batch
@@ -187,14 +191,22 @@ trainer = SFTTrainer(
         output_dir=f"outputs/debug_worldsize{world_size}",  # Output directory
         ddp_find_unused_parameters=False,   # DDP optimization
         report_to="tensorboard",            # Use tensorboard for logging
-        eval_strategy="epoch"               # Evaluate at end of each epoch
+        eval_strategy="epoch",              # Evaluate at end of each epoch
+        # packing=True,
+        
+        # Packing configuration for 4D masked sequence packing
+        # packing=True,                       # Enable sequence packing with 4D masks
+        # packing_strategy="bfd",             # Best-fit decreasing strategy for efficient packing
+        # max_length=max_seq_length,          # Max length for packed sequences (matches model config)
+        # padding_free=True,                  # Padding-free processing (enabled with packing)
+        dataset_num_proc=4,
     ),  
 )
 
 # -----------------------------
 # Start Training
 # -----------------------------
-print("🔥 Starting training...")
+print("🔥 Starting training with 4D masked sequence packing...")
 if local_rank == 0:  # Only print from main process
     print(f"💾 Logs will be saved to: outputs/debug_worldsize{world_size}")
     print(f"📈 Monitor training: tensorboard --logdir outputs/debug_worldsize{world_size}")
