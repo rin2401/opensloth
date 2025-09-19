@@ -10,13 +10,13 @@ from datasets import Dataset, load_dataset
 from trl import SFTConfig, SFTTrainer  # type: ignore
 
 from opensloth.patching.ddp_patch import ddp_patch, patch_trainer_get_batch_samples
-
+WORLD_SIZE = int(os.environ.get("WORLD_SIZE", "1"))
 MODEL_NAME = "unsloth/Qwen3-0.6B"
 MAX_SEQ_LENGTH = 16000
 LORA_RANK = 8
 NUM_EPOCHS = 10
 LEARNING_RATE = 2e-4
-PER_DEVICE_BATCH_SIZE = 32
+PER_DEVICE_BATCH_SIZE = 32//WORLD_SIZE  # Adjust based on GPU memory
 GRAD_ACCUM = 8
 
 def init_model(local_rank: int) -> Tuple[FastLanguageModel, Any]:
@@ -111,12 +111,12 @@ def main() -> None:
     model, tokenizer = init_model(local_rank)
     train_dataset, val_dataset = prepare_datasets(tokenizer)
 
-    world_size = int(os.environ.get("WORLD_SIZE", "1"))
-    print(f"🌍 World size: {world_size} GPU(s)")
+    
+    print(f"🌍 World size: {WORLD_SIZE} GPU(s)")
 
-    print_batch_configuration(PER_DEVICE_BATCH_SIZE, GRAD_ACCUM, world_size)
+    print_batch_configuration(PER_DEVICE_BATCH_SIZE, GRAD_ACCUM, WORLD_SIZE)
 
-    trainer = build_trainer(model, tokenizer, train_dataset, val_dataset, world_size)
+    trainer = build_trainer(model, tokenizer, train_dataset, val_dataset, WORLD_SIZE)
 
     trainer.train()
 

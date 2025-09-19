@@ -34,7 +34,7 @@ def ddp_patch():
         print("[opensloth.ddp_patch] Multi-GPU detected -> prefer gradient_accumulation_steps=1")
     else:
         print("[opensloth.ddp_patch] Single GPU -> you may use gradient_accumulation_steps=2")
-
+    patch_trainer_loss_scaling()
     return device
 
 
@@ -254,7 +254,7 @@ def patch_trainer_loss_scaling():
     inside HuggingFace Trainer.compute_loss.
     """
     import inspect
-    import types
+    import textwrap
     import transformers.trainer as hf_trainer
 
     src = inspect.getsource(hf_trainer.Trainer.compute_loss)
@@ -264,13 +264,15 @@ def patch_trainer_loss_scaling():
             "loss *= self.accelerator.num_processes",
             "loss = loss.clone() * self.accelerator.num_processes",
         )
+        # Remove indentation to make it a module-level function
+        new_src = textwrap.dedent(new_src)
+        
         code_obj = compile(new_src, filename="<patched_compute_loss>", mode="exec")
         ns = {}
         exec(code_obj, hf_trainer.__dict__, ns)
 
-        hf_trainer.Trainer.compute_loss = types.MethodType(
-            ns["compute_loss"], None, hf_trainer.Trainer
-        )
+        # Directly assign the function to the class
+        hf_trainer.Trainer.compute_loss = ns["compute_loss"]
         print("[opensloth.ddp_patch] Patched Trainer.compute_loss inplace loss bug")
     else:
         print("[opensloth.ddp_patch] No inplace loss scaling found, nothing patched")
