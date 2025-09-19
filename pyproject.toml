@@ -35,8 +35,9 @@ dependencies = [
     "tensorboardx>=2.6.4",
     "transformers>=4.55.4",
     "trl>=0.22.2",
-    "unsloth>=2025.9.6",
-    "unsloth-zoo>=2025.9.8",
+    # "unsloth>=2025.9.6",
+    # "unsloth-zoo>=2025.9.8",
+    # "unsloth>=2025.9.7",
     "wandb>=0.21.4",
 ]
 
