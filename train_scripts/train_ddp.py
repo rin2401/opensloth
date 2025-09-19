@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# type: ignore
 """
 OpenSloth - Simple Multi-GPU Training with torchrun
 
@@ -58,7 +59,7 @@ model, tokenizer = FastLanguageModel.from_pretrained(
     max_seq_length=max_seq_length,
     load_in_4bit=True,                # Memory efficient 4-bit loading
     attn_implementation="flash_attention_2",  # Required for 4D masked packing to prevent cross-contamination
-    device_map={"": local_rank},      # Each process gets its own GPU
+    device_map=f"cuda:{local_rank}",  # Each process gets its own GPU
 )
 
 # Apply LoRA adapter for efficient fine-tuning
@@ -192,13 +193,6 @@ trainer = SFTTrainer(
         ddp_find_unused_parameters=False,   # DDP optimization
         report_to="tensorboard",            # Use tensorboard for logging
         eval_strategy="epoch",              # Evaluate at end of each epoch
-        # packing=True,
-        
-        # Packing configuration for 4D masked sequence packing
-        # packing=True,                       # Enable sequence packing with 4D masks
-        # packing_strategy="bfd",             # Best-fit decreasing strategy for efficient packing
-        # max_length=max_seq_length,          # Max length for packed sequences (matches model config)
-        # padding_free=True,                  # Padding-free processing (enabled with packing)
         dataset_num_proc=4,
     ),  
 )

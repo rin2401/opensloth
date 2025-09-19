@@ -1,7 +1,5 @@
 # utils/packing.py
-from typing import List, Dict, Any, Optional, Tuple
-import torch
-from typing import Any, Dict, List, Union, Optional
+from typing import List, Dict, Any, Optional
 import torch
 
 def _to_list_of_tensors(x) -> List[torch.Tensor]:
@@ -29,15 +27,17 @@ def _best_fit_decreasing(lengths: List[int], cap: int) -> List[List[int]]:
     order = sorted(range(len(lengths)), key=lambda i: lengths[i], reverse=True)
     bins, space = [], []
     for i in order:
-        l = lengths[i]
+        length = lengths[i]
         best, best_left = -1, cap + 1
         for b, left in enumerate(space):
-            if l <= left and (left - l) < best_left:
-                best, best_left = b, left - l
+            if length <= left and (left - length) < best_left:
+                best, best_left = b, left - length
         if best == -1:
-            bins.append([i]); space.append(cap - l)
+            bins.append([i])
+            space.append(cap - length)
         else:
-            bins[best].append(i); space[best] -= l
+            bins[best].append(i)
+            space[best] -= length
     return bins
 def _write_segment_block(blk_row: torch.Tensor, start: int, length: int, mode: str = "tri"):
     """
@@ -77,7 +77,6 @@ def pack(
     ids_list    = _to_list_of_tensors(batch["input_ids"])
     mask_list   = _to_list_of_tensors(batch.get("attention_mask")) if "attention_mask" in batch else [None]*len(ids_list)
     labels_list = _to_list_of_tensors(batch["labels"])
-    B = len(ids_list)
 
     if pad_token_id is None:
         # try to infer from padded rows if any; else default 0
@@ -95,9 +94,12 @@ def pack(
         lbl_t = _trim_by_mask(lbl, m) if m is not None else lbl
         if ids_t.size(0) > max_seql:
             seq = _chunk(ids_t, lbl_t, max_seql)
-            for a,b in seq: seq_ids.append(a); seq_lbls.append(b)
+            for a, b in seq:
+                seq_ids.append(a)
+                seq_lbls.append(b)
         else:
-            seq_ids.append(ids_t); seq_lbls.append(lbl_t)
+            seq_ids.append(ids_t)
+            seq_lbls.append(lbl_t)
 
     lengths = [int(t.size(0)) for t in seq_ids]
     if not lengths:
@@ -170,13 +172,3 @@ def pack(
     return out
 
 
-
-def packed_collator(features, tokenizer):
-    batch = {k: [f[k] for f in features] for k in features[0]}
-    return pack(
-        batch,
-        max_seql=128,
-        pad_token_id=tokenizer.pad_token_id,
-        pad_label_id=-100,
-        causal=True,
-    )
