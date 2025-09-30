@@ -26,14 +26,20 @@ def ddp_patch():
     local_rank = int(os.environ.get("LOCAL_RANK", 0))
     torch.cuda.set_device(local_rank)
     device = torch.device(f"cuda:{local_rank}")
-    print(f"[opensloth.ddp_patch] rank={os.environ.get('RANK')} "
-          f"local_rank={local_rank} -> {torch.cuda.get_device_name(local_rank)}")
+    print(
+        f"[opensloth.ddp_patch] rank={os.environ.get('RANK')} "
+        f"local_rank={local_rank} -> {torch.cuda.get_device_name(local_rank)}"
+    )
 
     world_size = int(os.environ.get("WORLD_SIZE", "1"))
     if world_size > 1:
-        print("[opensloth.ddp_patch] Multi-GPU detected -> prefer gradient_accumulation_steps=1")
+        print(
+            "[opensloth.ddp_patch] Multi-GPU detected -> prefer gradient_accumulation_steps=1"
+        )
     else:
-        print("[opensloth.ddp_patch] Single GPU -> you may use gradient_accumulation_steps=2")
+        print(
+            "[opensloth.ddp_patch] Single GPU -> you may use gradient_accumulation_steps=2"
+        )
     patch_trainer_loss_scaling()
     return device
 
@@ -52,6 +58,7 @@ def patch_optimize_sft_trainer_batch_samples() -> None:
 
     class PackedBatch:
         """Holds variable-length samples before padding into tensors."""
+
         def __init__(self):
             self.input_ids: List[torch.Tensor] = []
             self.attention_mask: List[torch.Tensor] = []
@@ -78,7 +85,9 @@ def patch_optimize_sft_trainer_batch_samples() -> None:
             attention_mask_tensor = torch.zeros((batch_size, max_len), dtype=torch.long)
             labels_tensor = torch.full((batch_size, max_len), -100, dtype=torch.long)
 
-            for i, (ids, mask, lbls) in enumerate(zip(self.input_ids, self.attention_mask, self.labels)):
+            for i, (ids, mask, lbls) in enumerate(
+                zip(self.input_ids, self.attention_mask, self.labels)
+            ):
                 L = ids.size(0)
                 input_ids_tensor[i, :L] = ids
                 attention_mask_tensor[i, :L] = mask
@@ -90,7 +99,9 @@ def patch_optimize_sft_trainer_batch_samples() -> None:
                 "labels": labels_tensor,
             }
 
-    def summarize_batches(batches: Sequence[Dict[str, torch.Tensor]], label: str) -> Tuple[int, int]:
+    def summarize_batches(
+        batches: Sequence[Dict[str, torch.Tensor]], label: str
+    ) -> Tuple[int, int]:
         total_tokens = sum(batch["input_ids"].numel() for batch in batches)
         useful_tokens = sum((batch["labels"] != -100).sum().item() for batch in batches)
         efficiency = (useful_tokens / total_tokens) if total_tokens else 0.0
@@ -101,7 +112,9 @@ def patch_optimize_sft_trainer_batch_samples() -> None:
             )
         return total_tokens, useful_tokens
 
-    def extract_samples(batches: Iterable[Dict[str, torch.Tensor]]) -> List[Dict[str, torch.Tensor]]:
+    def extract_samples(
+        batches: Iterable[Dict[str, torch.Tensor]],
+    ) -> List[Dict[str, torch.Tensor]]:
         """
         Flatten a list of padded batches into per-sample dicts with true (unpadded) length.
         Sorts samples by length descending (longest-first).
@@ -128,7 +141,9 @@ def patch_optimize_sft_trainer_batch_samples() -> None:
         samples.sort(key=lambda item: item["length"], reverse=True)
         return samples
 
-    def _optimal_partition_by_length(lengths: List[int], k: int) -> List[Tuple[int, int]]:
+    def _optimal_partition_by_length(
+        lengths: List[int], k: int
+    ) -> List[Tuple[int, int]]:
         """
         Partition a descending-sorted length array into k contiguous, non-empty groups
         minimizing sum over groups of (max_length_in_group * group_size).
@@ -146,7 +161,9 @@ def patch_optimize_sft_trainer_batch_samples() -> None:
         INF = 10**18
         # dp[t][j]: min cost to partition 0..j into t groups (1-index t)
         dp = [[INF] * n for _ in range(k)]
-        prev = [[-1] * n for _ in range(k)]  # prev split index s for dp[t][j]: last group is s+1..j
+        prev = [
+            [-1] * n for _ in range(k)
+        ]  # prev split index s for dp[t][j]: last group is s+1..j
 
         # Base: t=1 -> one group: cost is lengths[0] * (j+1)
         for j in range(n):
@@ -167,7 +184,9 @@ def patch_optimize_sft_trainer_batch_samples() -> None:
                     # cost of previous t groups on 0..s, plus cost of group (s+1..j)
                     # since lengths sorted desc, max of group (s+1..j) is lengths[s+1]
                     group_size = j - (s + 1) + 1  # = j - s
-                    cost = (dp[t - 1][s] if s >= 0 else INF) + lengths[s + 1] * group_size
+                    cost = (dp[t - 1][s] if s >= 0 else INF) + lengths[
+                        s + 1
+                    ] * group_size
                     if cost < best_cost:
                         best_cost = cost
                         best_s = s
@@ -187,7 +206,9 @@ def patch_optimize_sft_trainer_batch_samples() -> None:
         bounds.reverse()
         return bounds
 
-    def repack_batches(batches: Sequence[Dict[str, torch.Tensor]], verbose: bool = False) -> List[Dict[str, torch.Tensor]]:
+    def repack_batches(
+        batches: Sequence[Dict[str, torch.Tensor]], verbose: bool = False
+    ) -> List[Dict[str, torch.Tensor]]:
         """
         Optimal repacking (given fixed number of output batches and non-empty constraint).
         1) Extract and sort samples by length (desc).
@@ -195,9 +216,9 @@ def patch_optimize_sft_trainer_batch_samples() -> None:
         3) Assign groups to K new PackedBatch containers.
         """
         import time
-        
+
         start_time = time.time()
-        
+
         K = len(batches)
         samples = extract_samples(batches)
         lengths = [s["length"] for s in samples]
@@ -222,29 +243,32 @@ def patch_optimize_sft_trainer_batch_samples() -> None:
 
         # Convert to padded tensors
         result = [pb.to_dict() for pb in packed_batches]
-        
+
         if verbose:
             elapsed_time = time.time() - start_time
             print(f"[opensloth.ddp_patch] Repacking completed in {elapsed_time:.3f}s")
-        
+
         return result
 
     def patched(self, *args, **kwargs):
         batches, count = original_get_batch_samples(self, *args, **kwargs)
         original_total, original_useful = summarize_batches(batches, "")
-        repacked = repack_batches(batches, verbose=True)
+        repacked = repack_batches(batches, verbose=kwargs.get("verbose", False))
         repacked_total, repacked_useful = summarize_batches(repacked, "")
-        
+
         original_eff = (original_useful / original_total) if original_total else 0.0
         repacked_eff = (repacked_useful / repacked_total) if repacked_total else 0.0
-        print(f"[opensloth.ddp_patch] Repacking improved efficiency from {original_eff:.1%} to {repacked_eff:.1%}")
-        
+        print(
+            f"[opensloth.ddp_patch] Repacking improved efficiency from {original_eff:.1%} to {repacked_eff:.1%}"
+        )
+
         return repacked, count
 
     SFTTrainer._opensloth_original_get_batch_samples = original_get_batch_samples
     SFTTrainer.get_batch_samples = patched  # type: ignore[assignment]
-    print("[opensloth.ddp_patch] Patched SFTTrainer.get_batch_samples with optimal DP repacking")
-
+    print(
+        "[opensloth.ddp_patch] Patched SFTTrainer.get_batch_samples with optimal DP repacking"
+    )
 
 
 def patch_trainer_loss_scaling():
@@ -266,7 +290,7 @@ def patch_trainer_loss_scaling():
         )
         # Remove indentation to make it a module-level function
         new_src = textwrap.dedent(new_src)
-        
+
         code_obj = compile(new_src, filename="<patched_compute_loss>", mode="exec")
         ns = {}
         exec(code_obj, hf_trainer.__dict__, ns)
@@ -297,8 +321,11 @@ def patch_trainer_deterministic_sampler():
             return SequentialSampler(eval_dataset)
 
     import trl
+
     trl.SFTTrainer = DeterministicSafeSFTTrainer
-    print("[opensloth.ddp_patch] Replaced trl.SFTTrainer with DeterministicSafeSFTTrainer")
+    print(
+        "[opensloth.ddp_patch] Replaced trl.SFTTrainer with DeterministicSafeSFTTrainer"
+    )
 
 
 __all__ = [
